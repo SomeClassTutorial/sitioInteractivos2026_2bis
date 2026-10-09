@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Quick Discovery - Mobile Prototype</title>
+
+  <style>
+    :root {
+      --bg-color: #0a0a0a;
+      --app-bg: #141414;
+      --card-bg: #222222;
+      --card-back-bg: #1a1a1a;
+      --primary: #ffffff;
+      --secondary: #888888;
+      --btn-bg: #262626;
+      --btn-border: #404040;
+      --text-light: #f0f0f0;
+      --text-dim: #a0a0a0;
+      --border-wireframe: rgba(255, 255, 255, 0.22);
+      --shadow-elevation: 0 10px 30px rgba(0, 0, 0, 0.85);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-light);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    .app-viewport {
+      width: 100vw;
+      height: 100vh;
+      max-width: 420px;
+      max-height: 880px;
+      position: relative;
+      background: var(--app-bg);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-elevation);
+      border: 1px solid var(--border-wireframe);
+      border-radius: 12px;
+    }
+
+    .app-header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 50px;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      background: linear-gradient(180deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0) 100%);
+    }
+
+    .brand-logo {
+      font-weight: 700;
+      font-size: .95rem;
+      letter-spacing: 1px;
+      color: var(--primary);
+      text-transform: uppercase;
+      opacity: 0.9;
+    }
+
+    .hud-toggle-btn {
+      background: var(--btn-bg);
+      border: 1px solid var(--btn-border);
+      color: var(--text-light);
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .hud-toggle-btn:hover {
+      background: #333333;
+    }
+
+    .cards-deck {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      touch-action: none;
+    }
+
+    /* Floating Side Navigation Buttons for Desktop / PC Testing */
+    .side-nav-container {
+      position: absolute;
+      right: 12px;
+      top: 48%;
+      transform: translateY(-50%);
+      z-index: 15;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      pointer-events: auto;
+    }
+
+    .side-nav-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(20, 20, 20, 0.85);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid var(--border-wireframe);
+      color: var(--primary);
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      transition: transform 0.2s, background 0.2s, opacity 0.2s;
+      outline: none;
+    }
+
+    .side-nav-btn:hover:not(:disabled) {
+      background: rgba(50, 50, 50, 0.95);
+      transform: scale(1.08);
+    }
+
+    .side-nav-btn:active:not(:disabled) {
+      transform: scale(0.95);
+    }
+
+    .side-nav-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .card-wrapper {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      padding: 56px 16px 130px 16px;
+      perspective: 1000px;
+      transition: transform 0.4s ease-out, opacity 0.4s ease-out;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(100%);
+    }
+
+    .card-wrapper.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+      z-index: 5;
+    }
+
+    .card-wrapper.prev {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+
+    .card-inner {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    }
+
+    .card-inner.flipped {
+      transform: rotateY(180deg);
+    }
+
+    .card-front, .card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      border-radius: 16px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 18px;
+      border: 1px solid var(--border-wireframe);
+    }
+
+    .card-front {
+      background-size: cover;
+      background-position: center;
+      filter: grayscale(100%);
+      z-index: 2;
+      pointer-events: auto;
+    }
+
+    .card-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.65) 60%, rgba(0,0,0,0.95) 100%);
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .card-content {
+      position: relative;
+      z-index: 2;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .card-top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      gap: 8px;
+    }
+
+    .top-badge {
+      background: rgba(25, 25, 25, 0.85);
+      backdrop-filter: blur(8px);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      border: 1px solid var(--border-wireframe);
+      color: var(--primary);
+      font-weight: 500;
+    }
+
+    .bottom-info {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding-right: 48px; /* Space for side nav buttons */
+    }
+
+    .artist-title {
+      font-size: 2.1rem;
+      font-weight: 800;
+      line-height: 1.1;
+      color: var(--primary);
+      text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+    }
+
+    .track-subtitle {
+      font-size: 1.05rem;
+      color: var(--text-light);
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    .origin-tag {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    .action-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 10px;
+      background: rgba(20, 20, 20, 0.88);
+      backdrop-filter: blur(12px);
+      padding: 8px;
+      border-radius: 10px;
+      border: 1px solid var(--border-wireframe);
+    }
+
+    .btn {
+      border: 1px solid var(--btn-border);
+      outline: none;
+      padding: 10px 6px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.78rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      transition: background 0.2s, border-color 0.2s;
+      text-decoration: none;
+      color: var(--text-light);
+      background: var(--btn-bg);
+      flex: 1;
+    }
+
+    .btn:active {
+      background: #444444;
+    }
+
+    .btn-play {
+      background: var(--primary);
+      color: #000000;
+      border: 1px solid #ffffff;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .btn-flip-top {
+      background: rgba(25, 25, 25, 0.88);
+      border: 1px solid var(--border-wireframe);
+      color: var(--text-light);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      backdrop-filter: blur(8px);
+      transition: background 0.2s;
+    }
+
+    .btn-flip-top:hover {
+      background: rgba(45, 45, 45, 0.95);
+    }
+
+    .card-back {
+      background: var(--card-back-bg);
+      transform: rotateY(180deg);
+      color: var(--text-light);
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .back-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-wireframe);
+      padding-bottom: 10px;
+      width: 100%;
+    }
+
+    .back-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .bio-container {
+      margin: 12px 0;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      color: var(--text-dim);
+      overflow-y: auto;
+      flex: 1;
+      padding-right: 48px; /* Space for side navigation */
+    }
+
+    .bio-container p {
+      margin-bottom: 10px;
+    }
+
+    .options-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(220, 220, 220, 0.75);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease-in-out;
+    }
+
+    .options-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .overlay-close-btn {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #ffffff;
+      color: #000000;
+      border: none;
+      font-size: 1.5rem;
+      font-weight: 300;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    }
+
+    .overlay-buttons-container {
+      width: 100%;
+      max-width: 310px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .overlay-option-btn {
+      width: 100%;
+      padding: 18px 20px;
+      border-radius: 16px;
+      background: #ffffff;
+      color: #000000;
+      font-size: 1.25rem;
+      font-weight: 500;
+      text-align: center;
+      text-decoration: none;
+      border: none;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      cursor: pointer;
+      transition: transform 0.15s ease, background-color 0.15s ease;
+    }
+
+    .overlay-option-btn:active {
+      transform: scale(0.97);
+      background-color: #e5e5e5;
+    }
+
+    .player-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 70px;
+      background: #111111;
+      border-top: 1px solid var(--border-wireframe);
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 12px;
+    }
+
+    .player-track-info {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .player-track-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--primary);
+    }
+
+    .player-artist-name {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+    }
+
+    .progress-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: #333333;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: #ffffff;
+      transition: width 0.2s linear;
+    }
+
+    .telemetry-panel {
+      position: absolute;
+      top: 50px;
+      left: 0;
+      right: 0;
+      bottom: 70px;
+      background: rgba(12, 12, 12, 0.98);
+      backdrop-filter: blur(10px);
+      z-index: 40;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transform: translateY(100%);
+      transition: transform 0.3s ease-in-out;
+      font-family: monospace;
+      font-size: 0.75rem;
+      border-top: 1px solid var(--border-wireframe);
+    }
+
+    .telemetry-panel.open {
+      transform: translateY(0);
+    }
+
+    .telemetry-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #333333;
+      padding-bottom: 8px;
+      color: var(--primary);
+      font-weight: bold;
+    }
+
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .metric-card {
+      background: #202020;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #333333;
+    }
+
+    .metric-label {
+      color: var(--text-dim);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+    }
+
+    .metric-value {
+      font-size: 0.85rem;
+      font-weight: bold;
+      color: var(--primary);
+      margin-top: 2px;
+    }
+
+    .telemetry-logs {
+      flex: 1;
+      background: #080808;
+      border-radius: 6px;
+      padding: 8px;
+      overflow-y: auto;
+      border: 1px solid #222222;
+      color: #cccccc;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .log-item {
+      font-size: 0.68rem;
+      line-height: 1.25;
+      border-bottom: 1px solid #181818;
+      padding-bottom: 2px;
+    }
+
+    .swipe-hint {
+      position: absolute;
+      top: 55px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(20, 20, 20, 0.85);
+      border: 1px solid var(--border-wireframe);
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      z-index: 10;
+      pointer-events: none;
+      animation: bounce 2.2s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 20%, 50%, 80%, 100% {transform: translateX(-50%) translateY(0);}
+      40% {transform: translateX(-50%) translateY(-4px);}
+      60% {transform: translateX(-50%) translateY(-2px);}
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-viewport">
+    
+    <header class="app-header">
+      <div class="brand-logo">Descubrimiento Musical (Low-Fi)</div>
+      <button class="hud-toggle-btn" id="hudToggleBtn">📊</button> <!-- El botón de telemetría -->
+    </header>
+
+    <!-- div class="swipe-hint">↕ Swipe / Botones para navegar</div> -->
+
+    <main class="cards-deck" id="cardsDeck">
+
+      <!-- FLOATING CIRCULAR SIDE NAVIGATION BUTTONS FOR PC TESTING -->
+      <div class="side-nav-container">
+        <button class="side-nav-btn" id="navUpBtn" aria-label="Tarjeta Anterior" title="Anterior (▲)" disabled>▲</button>
+        <button class="side-nav-btn" id="navDownBtn" aria-label="Siguiente Tarjeta" title="Siguiente (▼)">▼</button>
+      </div>
+
+      <!-- CARD 1: NIÑA ZOMBIE -->
+      <div class="card-wrapper active" 
+           data-artist-id="nina_zombie" 
+           data-track-id="eres_luz"
+           data-spotify-track="https://open.spotify.com/track/3FrgTxktQhuHxjggCDo4kU?si=88d5a15d9e2c4e21"
+           data-ytmusic="https://music.youtube.com/channel/UCpW7W_vbIQXYfMhNWfgg9Kw?si=0HNnPim5bKQmJoQQ"
+           data-instagram="https://www.instagram.com/ninazombieoficial/"
+           data-facebook="https://www.facebook.com/profile.php?id=100090401530827">
+        <div class="card-inner">
+          
+          <!-- FRENTE DE TARJETA 1 -->
+          <div class="card-front" style="background-image: url('https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=800&q=80');">
+            <div class="card-overlay"></div>
+            <div class="card-content">
+              
+              <!-- TOP ROW: BADGE + BOTÓN FLIP EN ESQUINA SUPERIOR DERECHA -->
+              <div class="card-top-row">
+                <div class="top-badge">📍 CDMX • Indie Rock</div>
+                <button class="btn-flip-top js-flip-btn" title="Girar para saber más">
+                  🔄 Info
+                </button>
+              </div>
+              
+              <div class="bottom-info">
+                <div>
+                  <h1 class="artist-title">Niña Zombie</h1>
+                  <p class="track-subtitle">🎵 Eres Luz</p>
+                  <p class="origin-tag">Música independiente / Autopublicada</p>
+                </div>
+
+                <!-- MENU INFERIOR DE 3 BOTONES EN FRENTE -->
+                <div class="action-bar">
+                  <button class="btn btn-play js-play-btn">
+                    <span>▶ Play</span>
+                  </button>
+                  <button class="btn js-export-btn" data-side="front" title="Guardar / Exportar">
+                    ➕ Playlist
+                  </button>
+                  <button class="btn js-social-btn" data-side="front" title="Redes Sociales">
+                    📸 Redes
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- REVERSO DE TARJETA 1 -->
+          <div class="card-back">
+            <!-- TOP ROW: TÍTULO + BOTÓN FLIP EN ESQUINA SUPERIOR DERECHA -->
+            <div class="back-header">
+              <span class="back-title">Biografía del Artista</span>
+              <button class="btn-flip-top js-flip-btn" title="Volver al frente">↩ Volver</button>
+            </div>
+
+            <div class="bio-container">
+              <p><strong>Niña Zombie</strong> es una banda independiente originaria de la Ciudad de México, caracterizada por su sonido enérgico que mezcla matices de rock alternativo, post-punk e indie.</p>
+              <p>Con letras introspectivas y potentes atmósferas sonoras, "Eres Luz" se posiciona como su más reciente sencillo autopublicado, destacando por su producción autogestionada y su creciente impacto en la escena local.</p>
+              <p>📍 <strong>Origen:</strong> Ciudad de México, México.<br>
+              🎸 <strong>Géneros:</strong> Indie Rock / Alt Rock.</p>
+            </div>
+
+            <!-- MENU INFERIOR DE 3 BOTONES EN REVERSO (IDENTICO AL FRENTE) -->
+            <div class="action-bar">
+              <button class="btn btn-play js-play-btn">
+                <span>▶ Play</span>
+              </button>
+              <button class="btn js-export-btn" data-side="back" title="Guardar / Exportar">
+                ➕ Playlist
+              </button>
+              <button class="btn js-social-btn" data-side="back" title="Redes Sociales">
+                📸 Redes
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- CARD 2: LA FLOR DE MAÍZ -->
+      <div class="card-wrapper" 
+           data-artist-id="la_flor_de_maiz" 
+           data-track-id="stop_the_bombs"
+           data-spotify-track="https://open.spotify.com/track/7wDbGoi4lUoQIHOHGrv7Tb?si=befbfac328ef48c9"
+           data-ytmusic="https://music.youtube.com/@laflordemaizoficial8383?si=jekqFuKYvLF4dkDP"
+           data-instagram="https://www.instagram.com/laflordemaizoficial"
+           data-facebook="https://www.facebook.com/laflordemaizoficial">
+        <div class="card-inner">
+          
+          <!-- FRENTE DE TARJETA 2 -->
+          <div class="card-front" style="background-image: url('https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=800&q=80');">
+            <div class="card-overlay"></div>
+            <div class="card-content">
+              
+              <!-- TOP ROW: BADGE + BOTÓN FLIP EN ESQUINA SUPERIOR DERECHA -->
+              <div class="card-top-row">
+                <div class="top-badge">📍 México • Fusion / Reggae</div>
+                <button class="btn-flip-top js-flip-btn" title="Girar para saber más">
+                  🔄 Info
+                </button>
+              </div>
+
+              <div class="bottom-info">
+                <div>
+                  <h1 class="artist-title">La Flor de Maíz</h1>
+                  <p class="track-subtitle">🎵 Stop The Bombs</p>
+                  <p class="origin-tag">Música Independiente / Autopublicada</p>
+                </div>
+
+                <!-- MENU INFERIOR DE 3 BOTONES EN FRENTE -->
+                <div class="action-bar">
+                  <button class="btn btn-play js-play-btn"><span>▶ Play</span></button>
+                  <button class="btn js-export-btn" data-side="front" title="Guardar / Exportar">➕ Playlist</button>
+                  <button class="btn js-social-btn" data-side="front" title="Redes Sociales">📸 Redes</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- REVERSO DE TARJETA 2 -->
+          <div class="card-back">
+            <!-- TOP ROW: TÍTULO + BOTÓN FLIP EN ESQUINA SUPERIOR DERECHA -->
+            <div class="back-header">
+              <span class="back-title">La Flor de Maíz - Bio</span>
+              <button class="btn-flip-top js-flip-btn" title="Volver al frente">↩ Volver</button>
+            </div>
+
+            <div class="bio-container">
+              <p><strong>La Flor de Maíz</strong> es una propuesta musical independiente que fusiona ritmos del reggae, dub y sonidos de raíz con un mensaje directo de conciencia, paz y transformación social.</p>
+              <p>Su sencillo "Stop The Bombs" manifiesta una postura lírica y sonora contundente que resuena con audiencias locales e internacionales.</p>
+              <p>📍 <strong>Origen:</strong> México.<br>
+              🎸 <strong>Géneros:</strong> Fusion / Reggae / Dub.</p>
+            </div>
+
+            <!-- MENU INFERIOR DE 3 BOTONES EN REVERSO (IDENTICO AL FRENTE) -->
+            <div class="action-bar">
+              <button class="btn btn-play js-play-btn"><span>▶ Play</span></button>
+              <button class="btn js-export-btn" data-side="back" title="Guardar / Exportar">➕ Playlist</button>
+              <button class="btn js-social-btn" data-side="back" title="Redes Sociales">📸 Redes</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Modal Overlay Emergente (Plataformas Streaming & Redes) -->
+    <div class="options-overlay" id="optionsOverlay">
+      <button class="overlay-close-btn" id="overlayCloseBtn" aria-label="Cerrar">✕</button>
+      <div class="overlay-buttons-container" id="overlayButtonsContainer">
+        <!-- Generado dinámicamente con JS -->
+      </div>
+    </div>
+
+    <!-- Reproductor Inferior Fijo -->
+    <div class="player-bar">
+      <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      <button class="btn btn-play" id="globalPlayBtn" style="padding: 8px 12px; border-radius: 50%; flex: 0 0 auto;">▶</button>
+      <div class="player-track-info">
+        <div class="player-track-title" id="playerTrackTitle">Eres Luz</div>
+        <div class="player-artist-name" id="playerArtistName">Niña Zombie</div>
+      </div>
+      <span id="timerDisplay" style="font-size: 0.75rem; color: var(--primary); font-family: monospace;">00:00</span>
+    </div>
+
+    <!-- Panel Telemetría en Vivo (HUD) -->
+    <div class="telemetry-panel" id="telemetryPanel">
+      <div class="telemetry-header">
+        <span>📈 TELEMETRÍA EN TIEMPO REAL</span>
+        <button id="closeHudBtn" style="background:none; border:none; color:#fff; cursor:pointer;">✖</button>
+      </div>
+
+      <div class="telemetry-grid">
+        <div class="metric-card">
+          <div class="metric-label">Tarjetas Vistas</div>
+          <div class="metric-value" id="mCardViews">0</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Swipes / NavClicks</div>
+          <div class="metric-value" id="mSwipes">0</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Giros (Flips)</div>
+          <div class="metric-value" id="mFlips">0</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Tiempo Reverso</div>
+          <div class="metric-value" id="mDwellTime">0s</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Hitos Escucha</div>
+          <div class="metric-value" id="mListenMilestones">Ninguno</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Export Clicks</div>
+          <div class="metric-value" id="mExports">0</div>
+        </div>
+      </div>
+
+      <div class="telemetry-header" style="margin-top: 5px; font-size:0.7rem;">
+        <span>LOGS DE EVENTOS ENVIADOS</span>
+      </div>
+      <div class="telemetry-logs" id="telemetryLogs">
+        <div class="log-item">> Sistema de telemetría listo.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <audio id="audioPlayer" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" preload="metadata"></audio>
+
+  <script>
+    const state = {
+      currentIndex: 0,
+      isPlaying: false,
+      isFlipped: false,
+      backStartTime: null,
+      leaveSocialTime: null,
+      activeOverlaySourceSide: 'front',
+      metrics: {
+        cardViews: 0,
+        swipes: 0,
+        flips: 0,
+        dwellSeconds: 0,
+        milestone5: false,
+        milestone30: false,
+        exports: 0
+      }
+    };
+
+    // DOM Selectors
+    const cards = Array.from(document.querySelectorAll('.card-wrapper'));
+    const audio = document.getElementById('audioPlayer');
+    const globalPlayBtn = document.getElementById('globalPlayBtn');
+    const progressBar = document.getElementById('progressBar');
+    const timerDisplay = document.getElementById('timerDisplay');
+    const telemetryPanel = document.getElementById('telemetryPanel');
+    const hudToggleBtn = document.getElementById('hudToggleBtn');
+    const closeHudBtn = document.getElementById('closeHudBtn');
+    const logsContainer = document.getElementById('telemetryLogs');
+
+    // Navigation Side Buttons
+    const navUpBtn = document.getElementById('navUpBtn');
+    const navDownBtn = document.getElementById('navDownBtn');
+
+    // Overlay DOM Elements
+    const optionsOverlay = document.getElementById('optionsOverlay');
+    const overlayCloseBtn = document.getElementById('overlayCloseBtn');
+    const overlayButtonsContainer = document.getElementById('overlayButtonsContainer');
+
+    // Telemetry Metric Elements
+    const mCardViews = document.getElementById('mCardViews');
+    const mSwipes = document.getElementById('mSwipes');
+    const mFlips = document.getElementById('mFlips');
+    const mDwellTime = document.getElementById('mDwellTime');
+    const mListenMilestones = document.getElementById('mListenMilestones');
+    const mExports = document.getElementById('mExports');
+
+    function logEvent(eventName, payload = {}) {
+      const timestamp = new Date().toLocaleTimeString();
+      const payloadStr = JSON.stringify(payload).replace(/"/g, '');
+      const logLine = document.createElement('div');
+      logLine.className = 'log-item';
+      logLine.innerText = `[${timestamp}] ${eventName} -> ${payloadStr}`;
+      logsContainer.prepend(logLine);
+      console.log(`[TELEMETRY] ${eventName}`, payload);
+    }
+
+    function trackCardView(index) {
+      const activeCard = cards[index];
+      const artistId = activeCard.dataset.artistId;
+      state.metrics.cardViews++;
+      mCardViews.innerText = state.metrics.cardViews;
+      logEvent('card_view', { artist_id: artistId, index });
+      updateNavButtonsState();
+    }
+
+    function updateNavButtonsState() {
+      navUpBtn.disabled = state.currentIndex === 0;
+      navDownBtn.disabled = state.currentIndex === cards.length - 1;
+    }
+
+    // Initial View Tracking
+    trackCardView(0);
+
+    function togglePlay() {
+      if (audio.paused) {
+        audio.play().catch(() => {});
+        state.isPlaying = true;
+        updatePlayButtons('⏸');
+        const activeCard = cards[state.currentIndex];
+        logEvent('audio_play_click', { 
+          artist_id: activeCard.dataset.artistId, 
+          track_id: activeCard.dataset.trackId 
+        });
+      } else {
+        audio.pause();
+        state.isPlaying = false;
+        updatePlayButtons('▶');
+        logEvent('audio_pause_click', { artist_id: cards[state.currentIndex].dataset.artistId });
+      }
+    }
+
+    function updatePlayButtons(icon) {
+      globalPlayBtn.innerText = icon;
+      document.querySelectorAll('.js-play-btn').forEach(btn => {
+        const textSpan = btn.querySelector('span');
+        const label = state.isPlaying ? 'Pausa' : 'Play';
+        if (textSpan) {
+          textSpan.innerText = `${icon} ${label}`;
+        } else {
+          btn.innerText = `${icon} ${label}`;
+        }
+      });
+    }
+
+    audio.addEventListener('timeupdate', () => {
+      const current = audio.currentTime;
+      const duration = audio.duration || 1;
+      const progress = (current / duration) * 100;
+      progressBar.style.width = `${progress}%`;
+
+      const mins = Math.floor(current / 60);
+      const secs = Math.floor(current % 60);
+      timerDisplay.innerText = `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
+
+      // Milestone 5s
+      if (current >= 5 && !state.metrics.milestone5) {
+        state.metrics.milestone5 = true;
+        mListenMilestones.innerText = '> 5s';
+        logEvent('listen_milestone_5s', { 
+          artist_id: cards[state.currentIndex].dataset.artistId,
+          track_id: cards[state.currentIndex].dataset.trackId 
+        });
+      }
+
+      // Milestone 30s
+      if (current >= 30 && !state.metrics.milestone30) {
+        state.metrics.milestone30 = true;
+        mListenMilestones.innerText = '> 5s & > 30s';
+        logEvent('listen_milestone_30s', { 
+          artist_id: cards[state.currentIndex].dataset.artistId,
+          track_id: cards[state.currentIndex].dataset.trackId 
+        });
+      }
+    });
+
+    globalPlayBtn.addEventListener('click', togglePlay);
+    document.querySelectorAll('.js-play-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        togglePlay();
+      });
+    });
+
+    document.querySelectorAll('.js-flip-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const activeCard = cards[state.currentIndex];
+        const cardInner = activeCard.querySelector('.card-inner');
+        const cardFront = activeCard.querySelector('.card-front');
+        const cardBack = activeCard.querySelector('.card-back');
+
+        state.isFlipped = !state.isFlipped;
+        cardInner.classList.toggle('flipped', state.isFlipped);
+
+        // Control pointer events for seamless button interaction
+        if (state.isFlipped) {
+          cardFront.style.pointerEvents = 'none';
+          cardFront.style.zIndex = '1';
+          cardBack.style.pointerEvents = 'auto';
+          cardBack.style.zIndex = '2';
+          state.backStartTime = Date.now();
+        } else {
+          cardFront.style.pointerEvents = 'auto';
+          cardFront.style.zIndex = '2';
+          cardBack.style.pointerEvents = 'none';
+          cardBack.style.zIndex = '1';
+          calcAndLogDwellTime(activeCard.dataset.artistId);
+        }
+
+        state.metrics.flips++;
+        mFlips.innerText = state.metrics.flips;
+
+        const side = state.isFlipped ? 'back' : 'front';
+        logEvent('card_flip', { artist_id: activeCard.dataset.artistId, view_side: side });
+      });
+    });
+
+    function calcAndLogDwellTime(artistId) {
+      if (state.backStartTime) {
+        const dwellSeconds = Math.round((Date.now() - state.backStartTime) / 1000);
+        state.metrics.dwellSeconds += dwellSeconds;
+        mDwellTime.innerText = `${state.metrics.dwellSeconds}s`;
+        logEvent('back_card_dwell_time', { artist_id: artistId, duration_seconds: dwellSeconds });
+        state.backStartTime = null;
+      }
+    }
+
+    function openOverlay(type, side) {
+      const activeCard = cards[state.currentIndex];
+      state.activeOverlaySourceSide = side;
+      overlayButtonsContainer.innerHTML = '';
+
+      if (type === 'export') {
+        const options = [
+          { name: 'Spotify', url: activeCard.dataset.spotifyTrack },
+          { name: 'YouTube Music', url: activeCard.dataset.ytmusic }
+        ];
+
+        options.forEach(opt => {
+          const btn = document.createElement('button');
+          btn.className = 'overlay-option-btn';
+          btn.innerText = opt.name;
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            state.metrics.exports++;
+            mExports.innerText = state.metrics.exports;
+            logEvent('export_playlist_click', {
+              artist_id: activeCard.dataset.artistId,
+              track_id: activeCard.dataset.trackId,
+              target_platform: opt.name,
+              card_side: side
+            });
+            window.open(opt.url, '_blank');
+            closeOverlay();
+          });
+          overlayButtonsContainer.appendChild(btn);
+        });
+
+      } else if (type === 'social') {
+        const options = [
+          { name: 'Instagram', url: activeCard.dataset.instagram },
+          { name: 'Facebook', url: activeCard.dataset.facebook }
+        ];
+
+        options.forEach(opt => {
+          const btn = document.createElement('button');
+          btn.className = 'overlay-option-btn';
+          btn.innerText = opt.name;
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            logEvent('social_click', {
+              artist_id: activeCard.dataset.artistId,
+              platform_name: opt.name,
+              card_side: side
+            });
+            state.leaveSocialTime = Date.now();
+            window.open(opt.url, '_blank');
+            closeOverlay();
+          });
+          overlayButtonsContainer.appendChild(btn);
+        });
+      }
+
+      optionsOverlay.classList.add('active');
+    }
+
+    function closeOverlay() {
+      optionsOverlay.classList.remove('active');
+    }
+
+    overlayCloseBtn.addEventListener('click', closeOverlay);
+
+    // Action Bar Event Listeners
+    document.querySelectorAll('.js-export-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openOverlay('export', btn.dataset.side);
+      });
+    });
+
+    document.querySelectorAll('.js-social-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openOverlay('social', btn.dataset.side);
+      });
+    });
+
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && state.leaveSocialTime) {
+        const timeAwaySeconds = Math.round((Date.now() - state.leaveSocialTime) / 1000);
+        const artistId = cards[state.currentIndex].dataset.artistId;
+        logEvent('external_social_dwell_time', { 
+          artist_id: artistId, 
+          duration_seconds: timeAwaySeconds 
+        });
+        state.leaveSocialTime = null;
+      }
+    });
+
+    let startY = 0;
+    let isDragging = false;
+    const deck = document.getElementById('cardsDeck');
+
+    deck.addEventListener('pointerdown', (e) => {
+      if (optionsOverlay.classList.contains('active')) return;
+      if (e.target.closest('button') || e.target.closest('a')) return;
+      startY = e.clientY;
+      isDragging = true;
+    });
+
+    deck.addEventListener('pointerup', (e) => {
+      if (!isDragging || optionsOverlay.classList.contains('active')) return;
+      isDragging = false;
+      const endY = e.clientY;
+      const diffY = startY - endY;
+
+      if (Math.abs(diffY) > 50) {
+        if (diffY > 0 && state.currentIndex < cards.length - 1) {
+          changeCard(state.currentIndex + 1, 'down');
+        } else if (diffY < 0 && state.currentIndex > 0) {
+          changeCard(state.currentIndex - 1, 'up');
+        }
+      }
+    });
+
+    deck.addEventListener('pointerleave', () => { isDragging = false; });
+
+    // Side Navigation Circular Buttons Listener
+    navUpBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (state.currentIndex > 0) {
+        changeCard(state.currentIndex - 1, 'up');
+      }
+    });
+
+    navDownBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (state.currentIndex < cards.length - 1) {
+        changeCard(state.currentIndex + 1, 'down');
+      }
+    });
+
+    // Keyboard Navigation
+    document.addEventListener('keydown', (e) => {
+      if (optionsOverlay.classList.contains('active')) return;
+      if (e.key === 'ArrowDown' && state.currentIndex < cards.length - 1) {
+        changeCard(state.currentIndex + 1, 'down');
+      } else if (e.key === 'ArrowUp' && state.currentIndex > 0) {
+        changeCard(state.currentIndex - 1, 'up');
+      }
+    });
+
+    function changeCard(newIndex, direction) {
+      closeOverlay();
+      const currentCard = cards[state.currentIndex];
+      const nextCard = cards[newIndex];
+
+      if (state.isFlipped) {
+        calcAndLogDwellTime(currentCard.dataset.artistId);
+        currentCard.querySelector('.card-inner').classList.remove('flipped');
+        currentCard.querySelector('.card-front').style.pointerEvents = 'auto';
+        currentCard.querySelector('.card-front').style.zIndex = '2';
+        currentCard.querySelector('.card-back').style.pointerEvents = 'none';
+        currentCard.querySelector('.card-back').style.zIndex = '1';
+        state.isFlipped = false;
+      }
+
+      currentCard.classList.remove('active');
+      if (direction === 'down') currentCard.classList.add('prev');
+
+      nextCard.classList.remove('prev');
+      nextCard.classList.add('active');
+
+      state.metrics.swipes++;
+      mSwipes.innerText = state.metrics.swipes;
+      
+      logEvent('artist_swipe', { 
+        direction: direction, 
+        from_artist_id: currentCard.dataset.artistId, 
+        to_artist_id: nextCard.dataset.artistId 
+      });
+
+      state.currentIndex = newIndex;
+
+      document.getElementById('playerArtistName').innerText = nextCard.querySelector('.artist-title').innerText;
+      document.getElementById('playerTrackTitle').innerText = nextCard.querySelector('.track-subtitle').innerText;
+
+      state.metrics.milestone5 = false;
+      state.metrics.milestone30 = false;
+      mListenMilestones.innerText = 'Ninguno';
+
+      trackCardView(newIndex);
+    }
+
+    // Toggle Telemetry HUD
+    hudToggleBtn.addEventListener('click', () => telemetryPanel.classList.add('open'));
+    closeHudBtn.addEventListener('click', () => telemetryPanel.classList.remove('open'));
+  </script>
+</body>
+</html>
